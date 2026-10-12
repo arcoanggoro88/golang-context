@@ -3,7 +3,9 @@ package gocontext
 import (
 	"context"
 	"fmt"
+	"runtime"
 	"testing"
+	"time"
 )
 
 func TestContext(t *testing.T){
@@ -31,4 +33,50 @@ func TestContextWithValue(t *testing.T){
 	fmt.Println(contextD)
 	fmt.Println(contextE)
 	fmt.Println(contextF)
+}
+
+
+// sinyal cancel (context with cancel )
+//  diperlukan saat butuh menjalankan proses lain, dan ingin memberi sinyal cancel ke proses tsb. 
+// contoh go routine leak
+
+func CreateCounter(ctx context.Context) chan int {
+	destination := make(chan int)
+	go func ()  {
+		defer close(destination)
+		counter := 1
+		// --- menyebabkan goroutine leak ---
+		// for {
+		// 	destination <- counter
+		// 	counter++
+		// }
+		// ----
+		for {
+			select {
+			case <- ctx.Done():
+				return
+			default:
+				destination <- counter
+				counter++
+			}
+		}
+	}()
+	return destination
+}
+
+func TestContextWithCancel(t *testing.T){
+	fmt.Println("Total Goroutine:", runtime.NumGoroutine())	
+	parent := context.Background()
+	ctx, cancel := context.WithCancel(parent)
+	destination := CreateCounter(ctx)
+	fmt.Println("Total Goroutine:", runtime.NumGoroutine())	
+	for n := range destination {
+		fmt.Println("Counter",n)
+		if n == 10{
+			break
+		}
+	}
+	cancel() // mengirim sinyal cancel ke context 
+	time.Sleep(2 * time.Second)
+	fmt.Println("Total goroutine:", runtime.NumGoroutine())
 }
