@@ -145,3 +145,32 @@ func TestContextWithTimeout(t *testing.T) {
 	// Menampilkan jumlah goroutine akhir (kembali ke jumlah awal, membuktikan tidak ada kebocoran)
 	fmt.Println("Total goroutine:", runtime.NumGoroutine())
 }
+
+
+// Context With Deadline
+// berfungsi untuk menentapkan deadline timeout yang fix untuk tiap waktunya 
+
+func TestContextWithDeadline(t *testing.T) {
+	fmt.Println("Total Goroutine:", runtime.NumGoroutine())
+	parent := context.Background()
+	ctx, cancel := context.WithDeadline(parent, time.Now().Add(2 * time.Second)) // 2 detik 
+	defer cancel()
+ 
+	destination := CreateCounter(ctx)
+
+ 
+	fmt.Println("Total Goroutine:", runtime.NumGoroutine())
+
+ 
+	for n := range destination {
+		fmt.Println("Counter", n)  
+	}
+
+ 
+	cancel()
+
+	 
+	time.Sleep(2 * time.Second)
+ 
+	fmt.Println("Total goroutine:", runtime.NumGoroutine())
+}
